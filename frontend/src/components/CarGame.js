@@ -12,16 +12,25 @@ const CarGame = ({ onGameEnd }) => {
   useEffect(() => {
     if (!mountRef.current) return;
 
+    // Get container dimensions
+    const container = mountRef.current;
+    const width = container.clientWidth || window.innerWidth;
+    const height = container.clientHeight || window.innerHeight;
+
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0x87CEEB, 100, 300); // Sky blue fog for distance
     scene.background = new THREE.Color(0x87CEEB); // Sky blue
     
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    mountRef.current.appendChild(renderer.domElement);
+    
+    // Ensure container has size and append renderer
+    container.style.width = '100vw';
+    container.style.height = '100vh';
+    container.appendChild(renderer.domElement);
 
     // Background Music
     const startBackgroundMusic = () => {
@@ -124,75 +133,90 @@ const CarGame = ({ onGameEnd }) => {
       scene.add(segment);
     }
 
-    // Realistic Ground
-    const grassGeometry = new THREE.PlaneGeometry(400, 1000);
-    const grassMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 }); // Forest green
-    const grass = new THREE.Mesh(grassGeometry, grassMaterial);
-    grass.rotation.x = -Math.PI / 2;
-    grass.position.y = -0.1;
-    grass.receiveShadow = true;
-    scene.add(grass);
+    // Unlimited Grass Ground
+    const grassSegments = [];
+    const grassSegmentSize = 200;
+    
+    const createGrassSegment = (xPos, zPos) => {
+      const grassGeometry = new THREE.PlaneGeometry(grassSegmentSize, grassSegmentSize);
+      const grassMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 }); // Forest green
+      const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+      grass.rotation.x = -Math.PI / 2;
+      grass.position.set(xPos, -0.1, zPos);
+      grass.receiveShadow = true;
+      return grass;
+    };
+    
+    // Create initial grass grid
+    for (let x = -2; x <= 2; x++) {
+      for (let z = -2; z <= 5; z++) {
+        const grass = createGrassSegment(x * grassSegmentSize, z * grassSegmentSize);
+        grassSegments.push({ 
+          mesh: grass, 
+          xPos: x * grassSegmentSize, 
+          zPos: z * grassSegmentSize 
+        });
+        scene.add(grass);
+      }
+    }
 
     // Car creation function
-    const createRealisticCar = (bodyColor, roofColor) => {
+    const createCar = (bodyColor, roofColor) => {
       const carGroup = new THREE.Group();
       
       // Main body
-      const bodyGeometry = new THREE.BoxGeometry(1.8, 0.6, 4);
+      const bodyGeometry = new THREE.BoxGeometry(1.8, 0.7, 4.2);
       const bodyMaterial = new THREE.MeshLambertMaterial({ color: bodyColor });
       const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-      body.position.y = 0.7;
+      body.position.y = 0.8;
       body.castShadow = true;
       carGroup.add(body);
       
       // Roof
-      const roofGeometry = new THREE.BoxGeometry(1.6, 0.5, 2.2);
+      const roofGeometry = new THREE.BoxGeometry(1.6, 0.5, 2.5);
       const roofMaterial = new THREE.MeshLambertMaterial({ color: roofColor });
       const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-      roof.position.y = 1.2;
-      roof.position.z = 0.2;
+      roof.position.y = 1.4;
+      roof.position.z = 0.3;
       roof.castShadow = true;
       carGroup.add(roof);
       
-      // Windshield and windows
-      const windowGeometry = new THREE.PlaneGeometry(1.4, 0.4);
-      const windowMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x4169E1, 
-        opacity: 0.3, 
+      // Windshield
+      const windshieldGeometry = new THREE.PlaneGeometry(1.4, 0.4);
+      const windshieldMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x87CEEB, 
+        opacity: 0.4, 
         transparent: true 
       });
-      
-      // Front windshield
-      const frontWindow = new THREE.Mesh(windowGeometry, windowMaterial);
-      frontWindow.position.set(0, 1.3, 1.3);
-      frontWindow.rotation.x = -0.2;
-      carGroup.add(frontWindow);
+      const windshield = new THREE.Mesh(windshieldGeometry, windshieldMaterial);
+      windshield.position.set(0, 1.5, 1.4);
+      windshield.rotation.x = -0.3;
+      carGroup.add(windshield);
       
       // Wheels
-      const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 12);
-      const tireGeometry = new THREE.CylinderGeometry(0.35, 0.35, 0.35, 12);
-      const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x2F4F4F }); // Dark slate gray
-      const tireMaterial = new THREE.MeshLambertMaterial({ color: 0x1C1C1C }); // Almost black
+      const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+      const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x2F2F2F });
+      
+      const tireGeometry = new THREE.TorusGeometry(0.4, 0.15, 8, 16);
+      const tireMaterial = new THREE.MeshLambertMaterial({ color: 0x1C1C1C });
       
       const wheelPositions = [
-        { x: -0.9, y: 0.4, z: 1.3 },
-        { x: 0.9, y: 0.4, z: 1.3 },
-        { x: -0.9, y: 0.4, z: -1.3 },
-        { x: 0.9, y: 0.4, z: -1.3 }
+        { x: -0.9, y: 0.4, z: 1.4 },
+        { x: 0.9, y: 0.4, z: 1.4 },
+        { x: -0.9, y: 0.4, z: -1.4 },
+        { x: 0.9, y: 0.4, z: -1.4 }
       ];
       
       wheelPositions.forEach(pos => {
-        // Rim
         const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
         wheel.position.set(pos.x, pos.y, pos.z);
         wheel.rotation.z = Math.PI / 2;
         wheel.castShadow = true;
         carGroup.add(wheel);
         
-        // Tire
         const tire = new THREE.Mesh(tireGeometry, tireMaterial);
         tire.position.set(pos.x, pos.y, pos.z);
-        tire.rotation.z = Math.PI / 2;
+        tire.rotation.y = Math.PI / 2;
         tire.castShadow = true;
         carGroup.add(tire);
       });
@@ -200,51 +224,13 @@ const CarGame = ({ onGameEnd }) => {
       return carGroup;
     };
 
-    // Player car
-    const playerCar = createRealisticCar(0xDC143C, 0x8B0000); // Crimson and dark red
+    // Player car (single declaration)
+    const playerCar = createCar(0xFF0000, 0x8B0000); // Red car
     playerCar.position.set(0, 0, 0);
     scene.add(playerCar);
 
     // Bot cars array
     const bots = [];
-    
-    // Function to spawn random bot car
-    const spawnBotCar = () => {
-      if (bots.length >= 8) return; // Limit number of bots
-      
-      const colors = [
-        { body: 0x000080, roof: 0x000060 }, // Navy blue
-        { body: 0x008000, roof: 0x006400 }, // Green
-        { body: 0x800080, roof: 0x4B0082 }, // Purple
-        { body: 0xFF4500, roof: 0xCD4F39 }, // Orange red
-        { body: 0x2F4F4F, roof: 0x708090 }, // Dark slate gray
-        { body: 0x8B4513, roof: 0x654321 }, // Saddle brown
-        { body: 0x4682B4, roof: 0x1E90FF }  // Steel blue
-      ];
-      
-      const colorSet = colors[Math.floor(Math.random() * colors.length)];
-      const botCar = createRealisticCar(colorSet.body, colorSet.roof);
-      
-      const lanes = [-6, -3, 0, 3, 6];
-      const lane = lanes[Math.floor(Math.random() * lanes.length)];
-      
-      botCar.position.set(
-        lane, 
-        0, 
-        playerCar.position.z + 50 + Math.random() * 100
-      );
-      
-      const bot = {
-        car: botCar,
-        lane: lane,
-        baseSpeed: 0.12 + Math.random() * 0.08,
-        targetLane: lane,
-        laneChangeTime: 0
-      };
-      
-      bots.push(bot);
-      scene.add(botCar);
-    };
 
     // Realistic Environment
     const environmentObjects = [];
@@ -342,87 +328,14 @@ const CarGame = ({ onGameEnd }) => {
       return lamp;
     };
 
-    // Create car creation function
-    const createCar = (bodyColor, roofColor) => {
-      const carGroup = new THREE.Group();
-      
-      // Main body
-      const bodyGeometry = new THREE.BoxGeometry(1.8, 0.7, 4.2);
-      const bodyMaterial = new THREE.MeshLambertMaterial({ color: bodyColor });
-      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-      body.position.y = 0.8;
-      body.castShadow = true;
-      carGroup.add(body);
-      
-      // Roof
-      const roofGeometry = new THREE.BoxGeometry(1.6, 0.5, 2.5);
-      const roofMaterial = new THREE.MeshLambertMaterial({ color: roofColor });
-      const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-      roof.position.y = 1.4;
-      roof.position.z = 0.3;
-      roof.castShadow = true;
-      carGroup.add(roof);
-      
-      // Windshield
-      const windshieldGeometry = new THREE.PlaneGeometry(1.4, 0.4);
-      const windshieldMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x87CEEB, 
-        opacity: 0.4, 
-        transparent: true 
-      });
-      const windshield = new THREE.Mesh(windshieldGeometry, windshieldMaterial);
-      windshield.position.set(0, 1.5, 1.4);
-      windshield.rotation.x = -0.3;
-      carGroup.add(windshield);
-      
-      // Wheels
-      const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
-      const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x2F2F2F });
-      
-      const tireGeometry = new THREE.TorusGeometry(0.4, 0.15, 8, 16);
-      const tireMaterial = new THREE.MeshLambertMaterial({ color: 0x1C1C1C });
-      
-      const wheelPositions = [
-        { x: -0.9, y: 0.4, z: 1.4 },
-        { x: 0.9, y: 0.4, z: 1.4 },
-        { x: -0.9, y: 0.4, z: -1.4 },
-        { x: 0.9, y: 0.4, z: -1.4 }
-      ];
-      
-      wheelPositions.forEach(pos => {
-        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-        wheel.position.set(pos.x, pos.y, pos.z);
-        wheel.rotation.z = Math.PI / 2;
-        wheel.castShadow = true;
-        carGroup.add(wheel);
-        
-        const tire = new THREE.Mesh(tireGeometry, tireMaterial);
-        tire.position.set(pos.x, pos.y, pos.z);
-        tire.rotation.y = Math.PI / 2;
-        tire.castShadow = true;
-        carGroup.add(tire);
-      });
-      
-      // Bounding box for collision detection
-      const box = new THREE.Box3().setFromObject(carGroup);
-      carGroup.userData.boundingBox = box;
-      
-      return carGroup;
-    };
-
-    // Player car
-    const playerCar = createCar(0xFF0000, 0x8B0000); // Red car
-    playerCar.position.set(0, 0, 0);
-    scene.add(playerCar);
-
     // Game variables
     let gameEnded = false;
     let playerSpeed = 0;
     let playerX = 0;
     let playerZ = 0;
     let totalDistance = 0;
-    const maxSpeed = 1.2;
-    const acceleration = 0.012;
+    const maxSpeed = 0.3; // Reduced from 1.2 to 0.3 for realistic car speed
+    const acceleration = 0.003; // Reduced from 0.012 to 0.003 for gradual acceleration
     const keys = {};
     let startTime = Date.now();
     let lastBotSpawn = 0;
@@ -432,6 +345,44 @@ const CarGame = ({ onGameEnd }) => {
     const handleKeyUp = (e) => (keys[e.key] = false);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+
+    // Function to spawn random bot car
+    const spawnBotCar = () => {
+      if (bots.length >= 8) return; // Limit number of bots
+      
+      const colors = [
+        { body: 0x000080, roof: 0x000060 }, // Navy blue
+        { body: 0x008000, roof: 0x006400 }, // Green
+        { body: 0x800080, roof: 0x4B0082 }, // Purple
+        { body: 0xFF4500, roof: 0xCD4F39 }, // Orange red
+        { body: 0x2F4F4F, roof: 0x708090 }, // Dark slate gray
+        { body: 0x8B4513, roof: 0x654321 }, // Saddle brown
+        { body: 0x4682B4, roof: 0x1E90FF }  // Steel blue
+      ];
+      
+      const colorSet = colors[Math.floor(Math.random() * colors.length)];
+      const botCar = createCar(colorSet.body, colorSet.roof);
+      
+      const lanes = [-6, -3, 0, 3, 6];
+      const lane = lanes[Math.floor(Math.random() * lanes.length)];
+      
+      botCar.position.set(
+        lane, 
+        0, 
+        playerCar.position.z + 50 + Math.random() * 100
+      );
+      
+      const bot = {
+        car: botCar,
+        lane: lane,
+        baseSpeed: 0.12 + Math.random() * 0.08,
+        targetLane: lane,
+        laneChangeTime: 0
+      };
+      
+      bots.push(bot);
+      scene.add(botCar);
+    };
 
     // Collision detection
     const checkCollisions = () => {
@@ -473,7 +424,7 @@ const CarGame = ({ onGameEnd }) => {
       
       const bot = {
         car: botCar,
-        speed: 0.8 + Math.random() * 0.6,
+        speed: 0.2 + Math.random() * 0.15, // Reduced bot speeds to match player
         lane: spawnLane,
         targetLane: spawnLane
       };
@@ -516,32 +467,33 @@ const CarGame = ({ onGameEnd }) => {
       if (gameEnded) return;
       requestAnimationFrame(animate);
 
-      // Player controls (NOT inverted)
+      // Player controls with correct directions
       if (keys['ArrowUp'] || keys['w']) {
         playerSpeed = Math.min(playerSpeed + acceleration, maxSpeed);
       }
       if (keys['ArrowDown'] || keys['s']) {
-        playerSpeed = Math.max(playerSpeed - acceleration * 1.5, -maxSpeed * 0.3);
+        playerSpeed = Math.max(playerSpeed - acceleration * 2, -maxSpeed * 0.3);
       }
       if (!keys['ArrowUp'] && !keys['w'] && !keys['ArrowDown'] && !keys['s']) {
-        playerSpeed *= 0.98;
+        playerSpeed *= 0.95; // More realistic deceleration
       }
       
-      // Steering
+      // Fixed steering - corrected directions
+      const steerSpeed = 0.08 * (1 + playerSpeed * 0.5); // Steering gets harder at higher speeds
       if (keys['ArrowLeft'] || keys['a']) {
-        playerX = Math.max(playerX - 0.15, -7);
-        playerCar.rotation.y = 0.1;
-        playerCar.rotation.z = 0.05;
+        playerX = Math.min(playerX + steerSpeed, 7); // Left goes to positive X
+        playerCar.rotation.y = -Math.min(playerSpeed * 0.3, 0.15);
+        playerCar.rotation.z = -Math.min(playerSpeed * 0.2, 0.08);
       } else if (keys['ArrowRight'] || keys['d']) {
-        playerX = Math.min(playerX + 0.15, 7);
-        playerCar.rotation.y = -0.1;
-        playerCar.rotation.z = -0.05;
+        playerX = Math.max(playerX - steerSpeed, -7); // Right goes to negative X
+        playerCar.rotation.y = Math.min(playerSpeed * 0.3, 0.15);
+        playerCar.rotation.z = Math.min(playerSpeed * 0.2, 0.08);
       } else {
         playerCar.rotation.y *= 0.9;
         playerCar.rotation.z *= 0.9;
       }
 
-      // Update player position
+      // Update player position - forward movement in positive Z direction
       playerZ += playerSpeed;
       totalDistance += Math.abs(playerSpeed);
       playerCar.position.x = playerX;
@@ -555,11 +507,29 @@ const CarGame = ({ onGameEnd }) => {
         }
       });
 
+      // Update grass segments for unlimited grass
+      grassSegments.forEach(segment => {
+        // Move grass segments that are too far behind to the front
+        if (segment.zPos < playerZ - grassSegmentSize * 2) {
+          segment.zPos += grassSegmentSize * 7; // 7 segments in Z direction
+          segment.mesh.position.z = segment.zPos;
+        }
+        // Move grass segments that are too far to the sides
+        if (segment.xPos < playerX - grassSegmentSize * 1.5) {
+          segment.xPos += grassSegmentSize * 5; // 5 segments in X direction
+          segment.mesh.position.x = segment.xPos;
+        }
+        if (segment.xPos > playerX + grassSegmentSize * 1.5) {
+          segment.xPos -= grassSegmentSize * 5;
+          segment.mesh.position.x = segment.xPos;
+        }
+      });
+
       // Spawn bots and environment
       spawnRandomBot();
       spawnEnvironment();
 
-      // Update bot cars
+      // Update bot cars - moving in opposite direction relative to player
       bots.forEach((bot, index) => {
         bot.car.position.z -= bot.speed;
         
@@ -608,18 +578,18 @@ const CarGame = ({ onGameEnd }) => {
         }
       });
 
-      // Update HUD
-      setSpeed(Math.abs(playerSpeed * 180));
+      // Update HUD with realistic speed display
+      setSpeed(Math.abs(playerSpeed * 300)); // Adjusted multiplier for realistic km/h display
       const elapsed = (Date.now() - startTime) / 1000;
       setTime(elapsed);
       setPosition(currentPosition);
       
-      // Update lap based on distance (every 100 units = 1 lap)
-      const currentLap = Math.floor(totalDistance / 100) + 1;
+      // Update lap based on distance (every 200 units = 1 lap, adjusted for slower speed)
+      const currentLap = Math.floor(totalDistance / 200) + 1;
       setLap(Math.min(currentLap, 3));
       
-      // End race after sufficient distance and time
-      if (totalDistance > 300 && elapsed > 30) {
+      // End race after sufficient distance and time (adjusted for realistic speed)
+      if (totalDistance > 600 && elapsed > 60) {
         gameEnded = true;
         onGameEnd(elapsed, currentPosition);
         stopMusic();
@@ -633,27 +603,58 @@ const CarGame = ({ onGameEnd }) => {
 
     // Handle window resize
     const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const newWidth = container.clientWidth || window.innerWidth;
+      const newHeight = container.clientHeight || window.innerHeight;
+      camera.aspect = newWidth / newHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(newWidth, newHeight);
     };
     window.addEventListener('resize', handleResize);
+
+    // Initial camera position
+    camera.position.set(0, 6, -12);
+    camera.lookAt(0, 0, 0);
 
     return () => {
       gameEnded = true;
       stopMusic();
-      if (mountRef.current && renderer.domElement) {
-        mountRef.current.removeChild(renderer.domElement);
-      }
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('resize', handleResize);
+      
+      // Proper cleanup
+      if (mountRef.current && renderer.domElement) {
+        try {
+          mountRef.current.removeChild(renderer.domElement);
+        } catch (e) {
+          console.warn('Renderer cleanup failed:', e);
+        }
+      }
+      
+      // Dispose of Three.js resources
+      scene.traverse((object) => {
+        if (object.geometry) {
+          object.geometry.dispose();
+        }
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach(material => material.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      });
+      
       renderer.dispose();
     };
   }, [onGameEnd]);
 
   return (
-    <div ref={mountRef} className="relative">
+    <div 
+      ref={mountRef} 
+      className="relative w-full h-screen overflow-hidden"
+      style={{ width: '100vw', height: '100vh' }}
+    >
       <HUD speed={speed} lap={lap} time={time} position={position} />
     </div>
   );
