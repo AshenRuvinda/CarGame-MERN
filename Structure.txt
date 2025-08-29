@@ -1,0 +1,157 @@
+car-racing-game/
+│
+├── backend/                          # Express + MongoDB backend
+│   ├── server.js                     # Entry point for backend
+│   ├── .env                          # Environment variables (PORT, MONGO_URI)
+│   ├── package.json                  # Backend dependencies
+│   ├── config/
+│   │   └── db.js                     # MongoDB connection
+│   ├── models/
+│   │   └── Score.js                  # Schema for race scores
+│   ├── controllers/
+│   │   └── scoreController.js        # Save & fetch leaderboard logic
+│   ├── routes/
+│   │   └── scoreRoutes.js            # API endpoints for scores
+│   └── middleware/
+│       └── errorHandler.js           # Optional error handling
+│
+├── frontend/                         # React + Tailwind frontend
+│   ├── public/
+│   │   ├── index.html                # Root HTML
+│   │   └── favicon.ico
+│   ├── src/
+│   │   ├── index.js                  # React entry point
+│   │   ├── App.js                    # Main app with routes
+│   │   ├── styles.css                # Tailwind CSS import
+│   │   ├── pages/                    # Full pages
+│   │   │   ├── Splash.js             # Splash screen
+│   │   │   ├── Menu.js               # Main menu
+│   │   │   ├── Game.js               # Game scene (Three.js racing)
+│   │   │   └── Results.js            # Leaderboard/results
+│   │   ├── components/               # Reusable UI + game components
+│   │   │   ├── CarGame.js            # 3D game engine (player + bots)
+│   │   │   ├── HUD.js                # HUD (speed, timer, laps)
+│   │   │   └── Leaderboard.js        # Display scores
+│   │   └── utils/
+│   │       └── api.js                # Axios calls to backend
+│   ├── tailwind.config.js            # Tailwind config
+│   ├── postcss.config.js             # PostCSS for Tailwind
+│   └── package.json                  # Frontend dependencies
+│
+├── .gitignore                        # Ignore node_modules, env, etc.
+└── README.md                         # Project documentation
+
+
+I want to build a 3D car racing game using the MERN stack (MongoDB, Express, React, Node.js) with Three.js for rendering the 3D racing environment. The frontend should be created using React with Tailwind CSS for styling, but I do not want to use Vite or JSX files. Keep everything in .js files. The backend must use Express with MongoDB, and environment variables should be handled via a .env file in the backend directory.
+
+Application Flow
+
+Splash Screen
+
+When the player opens the game, a splash screen is shown with the game logo, background animation, and a "Press Any Key to Continue" interaction.
+
+After a short delay or key press, it transitions smoothly into the Main Menu.
+
+Main Menu
+
+The menu shows options:
+
+Start Race → Starts a new race session.
+
+Leaderboard → Shows global high scores stored in MongoDB.
+
+Exit → Ends the game.
+
+The background of the menu can feature a rotating 3D car model made with Three.js.
+
+Game Scene
+
+Once "Start Race" is selected, the player enters the 3D race track.
+
+The player controls their car using keyboard inputs:
+
+↑ accelerate
+
+↓ brake/reverse
+
+← left
+
+→ right
+
+The track is a simple looping circuit with checkpoints and lap counting.
+
+There are bot cars (AI opponents) moving along pre-programmed racing paths, giving the feel of competition.
+
+A HUD (Heads-Up Display) overlays on screen showing:
+
+Speedometer
+
+Lap counter
+
+Timer
+
+Position in race
+
+Game Over / Results Screen
+
+At the end of the race (after 3 laps or set timer), results are shown:
+
+Player’s time
+
+Final rank (position compared to bots)
+
+The player’s score/time is automatically sent to the backend API and stored in MongoDB.
+
+Leaderboard Screen
+
+The leaderboard fetches scores from the backend and displays top 10 fastest times with usernames.
+
+Styled with Tailwind, showing a clean responsive table.
+
+Backend Requirements
+
+Use Express.js with routes for:
+
+POST /api/scores → Save a new race result.
+
+GET /api/scores → Fetch leaderboard (sorted by best times).
+
+MongoDB model: Score with fields { username, time, date }.
+
+.env file should include PORT and MONGO_URI.
+
+Frontend Requirements
+
+Pages:
+
+Splash.js (splash screen)
+
+Menu.js (main menu)
+
+Game.js (Three.js racing logic with player + bots)
+
+Results.js (show results and upload score)
+
+Components:
+
+CarGame.js (3D scene with player + bot cars)
+
+HUD.js (lap/time/speed overlay)
+
+Leaderboard.js (fetch & display scores)
+
+Utils:
+
+api.js → Axios wrapper to connect frontend with backend.
+
+Tailwind should handle styling.
+
+Deployment
+
+Backend runs on http://localhost:5000
+
+Frontend runs on http://localhost:3000
+
+Use CORS to allow communication.
+
+✅ This ensures the game has a clear flow (splash → menu → game → results → leaderboard), integrates bots as opponents, and uses MERN + Three.js + Tailwind in a clean structure.
